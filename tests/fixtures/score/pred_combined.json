@@ -1,0 +1,1 @@
+{"sheets":{"S1":{"sheet_weight":1,"groups":{"final":{"weight":0.4,"cells":[{"cell":"A1","cell_type":"currency"},{"cell":"B1","cell_type":"number"},{"cell":"C1","cell_type":"number"}]},"intermediate":{"weight":0.6,"cells":[{"cell":"A2","cell_type":"currency"},{"cell":"B2","cell_type":"number"}]}}}}}

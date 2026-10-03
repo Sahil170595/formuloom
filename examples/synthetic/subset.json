@@ -1,0 +1,121 @@
+{
+  "spec_version": 2,
+  "task_tolerance": 0.01,
+  "sheets": {
+    "Assumptions": {
+      "sheet_weight": 1.0,
+      "groups": {
+        "intermediate": {
+          "weight": 1.0,
+          "cells": [
+            {
+              "cell": "B2",
+              "cell_type": "currency"
+            },
+            {
+              "cell": "B3",
+              "cell_type": "currency"
+            }
+          ]
+        },
+        "final": {
+          "weight": 0.0,
+          "cells": []
+        }
+      }
+    },
+    "Operations": {
+      "sheet_weight": 1.0,
+      "groups": {
+        "intermediate": {
+          "weight": 0.6,
+          "cells": [
+            {
+              "cell": "B2",
+              "cell_type": "currency"
+            },
+            {
+              "cell": "C2",
+              "cell_type": "currency"
+            },
+            {
+              "cell": "B4",
+              "cell_type": "currency"
+            },
+            {
+              "cell": "C4",
+              "cell_type": "currency"
+            },
+            {
+              "cell": "B6",
+              "cell_type": "currency"
+            },
+            {
+              "cell": "C6",
+              "cell_type": "currency"
+            }
+          ]
+        },
+        "final": {
+          "weight": 0.4,
+          "cells": [
+            {
+              "cell": "B5",
+              "cell_type": "currency"
+            },
+            {
+              "cell": "C5",
+              "cell_type": "currency"
+            },
+            {
+              "cell": "B7",
+              "cell_type": "currency"
+            },
+            {
+              "cell": "C7",
+              "cell_type": "currency"
+            }
+          ]
+        }
+      }
+    },
+    "Summary": {
+      "sheet_weight": 1.0,
+      "groups": {
+        "intermediate": {
+          "weight": 0.6,
+          "cells": []
+        },
+        "final": {
+          "weight": 0.4,
+          "cells": [
+            {
+              "cell": "B2",
+              "cell_type": "currency"
+            },
+            {
+              "cell": "C2",
+              "cell_type": "currency"
+            },
+            {
+              "cell": "B3",
+              "cell_type": "currency"
+            },
+            {
+              "cell": "C3",
+              "cell_type": "currency"
+            },
+            {
+              "cell": "B4",
+              "cell_type": "currency"
+            },
+            {
+              "cell": "C4",
+              "cell_type": "currency"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

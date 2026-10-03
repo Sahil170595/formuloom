@@ -1,0 +1,17 @@
+from __future__ import annotations
+
+SPEC_VERSION: int = 2
+
+TASK_TOLERANCE: float = 0.01
+
+GROUP_WEIGHT_INTERMEDIATE: float = 0.6
+
+GROUP_WEIGHT_FINAL: float = 0.4
+
+MAX_CONCURRENT_LLM_CALLS: int = 24
+
+LLM_TIMEOUT_SECONDS: int = 120
+
+LLM_MAX_RETRIES: int = 3
+
+SECTION_SPLIT_ROW_THRESHOLD: int = 150

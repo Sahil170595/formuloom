@@ -14,9 +14,11 @@ historical workbook corpus, reference labels, provider responses, or run records
 are included. Public prompt wording and examples have been independently
 rewritten. Historical performance does not transfer to this release.
 
-The separate browser edition is proposed in [demo PR #55](https://github.com/Sahil170595/Banterblogs/pull/55).
-It is pending merge and is **not a claimed live deployment**. Its reduced browser
-logic is not this Python pipeline. The portfolio collection is [/work](https://chimeraforge.vercel.app/work).
+A separately authored [browser demo](https://chimeraforge.vercel.app/projects/agents-and-evaluation/spreadsheet-reasoning)
+labels one small synthetic workbook with abstaining rule votes over its dependency
+graph and scores the labels against an authored key. Its reduced browser logic is
+not this Python pipeline: there is no model, no workbook ingestion and no trained
+label model.
 
 ## Run Without a Provider
 

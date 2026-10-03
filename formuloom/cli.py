@@ -141,11 +141,11 @@ def _atomic_write_text(path: Path, text: str) -> None:
 
 
 def _atomic_write_json(path: Path, payload: Any) -> None:
-    _atomic_write_text(path, json.dumps(payload, indent=2, ensure_ascii=False) + "\n")
+    _atomic_write_text(path, json.dumps(payload, indent=2, ensure_ascii=False, allow_nan=False) + "\n")
 
 
 def _atomic_write_diff_file(path: Path, diff: DiffFile) -> None:
-    _atomic_write_text(path, json.dumps(diff.model_dump(), indent=2, ensure_ascii=False) + "\n")
+    _atomic_write_json(path, diff.model_dump())
 
 
 def _default_run_dir(variant: str) -> Path:

@@ -149,3 +149,30 @@ def test_eval_models_construct() -> None:
 def test_cell_entry_forbids_extra() -> None:
     with pytest.raises(ValidationError):
         CellEntry.model_validate({"cell": "A1", "cell_type": "text", "note": "x"})
+
+
+@pytest.mark.parametrize("ref", ["A0", "A01", "not-a-cell", "XFE1", "A1048577", "AAAA1", "$A$1", "A1:B2", "A1\n"])
+def test_cell_entry_rejects_invalid_excel_reference(ref: str) -> None:
+    with pytest.raises(ValidationError):
+        CellEntry.model_validate({"cell": ref, "cell_type": "number"})
+    for helper in (cell_row, cell_column_letters, cell_column_index):
+        with pytest.raises(ValueError):
+            helper(ref)
+
+
+@pytest.mark.parametrize("ref, canonical", [("a1", "A1"), ("aB100", "AB100"), ("xFd1048576", "XFD1048576")])
+def test_cell_entry_canonicalizes_excel_case(ref: str, canonical: str) -> None:
+    entry = CellEntry.model_validate({"cell": ref, "cell_type": "number"})
+    assert entry.cell == canonical
+    assert entry.model_dump()["cell"] == canonical
+    assert cell_sort_key(ref) == cell_sort_key(canonical)
+
+
+def test_diff_reference_sets_and_types_use_canonical_case() -> None:
+    payload = _load_json(FIXTURES / "multigroup_raw_diff.json")
+    for sheet in payload["sheets"].values():
+        for group in sheet["groups"].values():
+            for entry in group["cells"]:
+                entry["cell"] = entry["cell"].lower()
+    canonical = DiffFile.model_validate(_load_json(FIXTURES / "multigroup_raw_diff.json"))
+    assert DiffFile.model_validate_json(json.dumps(payload)) == canonical

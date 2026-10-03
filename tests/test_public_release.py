@@ -1,5 +1,6 @@
 import asyncio
 import json
+from dataclasses import replace
 from pathlib import Path
 
 import openpyxl
@@ -7,9 +8,10 @@ import pytest
 from typer.testing import CliRunner
 
 from formuloom.bundle import PREDICT_ALLOWLIST, LeakageError, TaskBundle, _read_text
-from formuloom.cli import app
+from formuloom.cli import _atomic_write_diff_file, _atomic_write_json, app
 from formuloom.fixtures import generate_fixture
 from formuloom.offline import inspect_bundle, run_mechanical_v15
+from formuloom.schema import DiffFile
 from formuloom.weak import predict_v8
 
 
@@ -107,6 +109,9 @@ def test_public_cli_weak_and_offline_evaluation(tmp_path, monkeypatch):
     )
     assert result.exit_code == 0, result.output
     payload = json.loads((tmp_path / "scores.json").read_text())
+    json.dumps(payload, allow_nan=False)
+    assert payload["meta"]["extended"]["per_dollar"] == {"f1": None, "recall": None}
+    assert payload["meta"]["extended"]["undefined_cost_metrics"]
     assert payload["meta"]["tokens"] == 0
     assert payload["meta"]["offline_only"] is True
     assert payload["meta"]["variant"] == "V8"
@@ -132,3 +137,32 @@ def test_reproduction_runs_actual_predictions_and_refuses_overwrite(tmp_path, mo
         assert prediction["strict"] == score_task("synthetic", predicted, reference, "strict").model_dump()
     with pytest.raises(FileExistsError):
         reproduce(tmp_path / "repro")
+
+
+def test_weak_prediction_is_case_invariant_after_json_ingestion(tmp_path):
+    bundle = TaskBundle.load(generate_fixture(tmp_path / "example"), "predict")
+    payload = bundle.raw_diff.model_dump()
+    for sheet in payload["sheets"].values():
+        for group in sheet["groups"].values():
+            if group:
+                for cell in group["cells"]:
+                    cell["cell"] = cell["cell"].lower()
+    lowercase = DiffFile.model_validate_json(json.dumps(payload))
+    expected = predict_v8(bundle, cache_dir=tmp_path / "cache")
+    actual = predict_v8(replace(bundle, raw_diff=lowercase), cache_dir=tmp_path / "cache")
+    assert any(expected[0].final_refs(sheet) for sheet in expected[0].sheets)
+    assert actual == expected
+
+
+@pytest.mark.parametrize("value", [float("inf"), float("-inf"), float("nan")])
+def test_cli_json_writers_reject_nonfinite_without_overwriting(tmp_path, value):
+    output = tmp_path / "existing.json"
+    original = '{"previous": true}'
+    output.write_text(original)
+    with pytest.raises(ValueError, match="Out of range float"):
+        _atomic_write_json(output, {"unexpected": value})
+    assert output.read_text() == original
+    diff = DiffFile(sheets={"S1": {"sheet_weight": value, "groups": {}}})
+    with pytest.raises(ValueError, match="Out of range float"):
+        _atomic_write_diff_file(output, diff)
+    assert output.read_text() == original

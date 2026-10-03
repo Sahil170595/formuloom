@@ -134,13 +134,28 @@ def build_eval_results(
 
         clusters = [ClusterCounts(sb.sheet, sb.tp, sb.fp, sb.fn) for d in details.values() for sb in d.per_sheet]
         pooled_tn = sum(sb.golden_intermediate - sb.fp for d in details.values() for sb in d.per_sheet)
-        meta["extended"] = extended_metrics(clusters, tn=pooled_tn, cost_usd=cost_usd)
+        extended = extended_metrics(clusters, tn=pooled_tn, cost_usd=cost_usd)
+        # Keep library ratio conventions, but represent undefined export diagnostics as JSON null.
+        undefined: dict[str, str] = {}
+        for name, reason in (
+            ("cost_of_pass", "Metric is zero; cost per pass is undefined."),
+            ("per_dollar", "Cost is zero; positive metric per dollar is undefined."),
+        ):
+            block = extended.get(name)
+            if isinstance(block, dict):
+                for metric, value in block.items():
+                    if value == float("inf"):
+                        block[metric] = None
+                        undefined[f"{name}.{metric}"] = reason
+        if undefined:
+            extended["undefined_cost_metrics"] = undefined
+        meta["extended"] = extended
     result[META_KEY] = meta
     return result
 
 
 def write_eval_results(path: Path | str, results: Mapping[str, Any]) -> None:
-    Path(path).write_text(json.dumps(results, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    Path(path).write_text(json.dumps(results, indent=2, ensure_ascii=False, allow_nan=False) + "\n", encoding="utf-8")
 
 
 def _error_cells(
@@ -190,4 +205,4 @@ def build_error_report(task: str, prediction: DiffFile, golden: DiffFile, mode: 
 
 
 def write_error_report(path: Path | str, report: Mapping[str, Any]) -> None:
-    Path(path).write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    Path(path).write_text(json.dumps(report, indent=2, ensure_ascii=False, allow_nan=False) + "\n", encoding="utf-8")

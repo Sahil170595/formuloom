@@ -272,3 +272,43 @@ def test_write_error_report_roundtrip(tmp_path: Path) -> None:
     write_error_report(out, report)
     reloaded = json.loads(out.read_text(encoding="utf-8"))
     assert reloaded["false_negatives"]["S1"]["2"][0]["cell"] == "A2"
+
+
+@pytest.mark.parametrize("cost_usd", [0.0, 5.0])
+@pytest.mark.parametrize("perfect", [False, True])
+def test_eval_results_cost_diagnostics_are_strict_json(tmp_path: Path, cost_usd: float, perfect: bool) -> None:
+    golden = _diff(SCORE_FX / "golden_combined.json")
+    prediction = golden.model_copy(deep=True)
+    if not perfect:
+        for sheet in prediction.sheets.values():
+            sheet.groups.intermediate.cells.extend(sheet.groups.final.cells)
+            sheet.groups.final.cells.clear()
+    detail = score_task("synthetic", prediction, golden, "annotated")
+    results = build_eval_results({"synthetic": detail}, cost_usd=cost_usd)
+    encoded = json.dumps(results, allow_nan=False)
+    extended = results["meta"]["extended"]
+    undefined = extended.get("undefined_cost_metrics", {})
+    for metric in ("f1", "recall"):
+        if not perfect:
+            assert extended["cost_of_pass"][metric] is None
+            assert undefined[f"cost_of_pass.{metric}"] == "Metric is zero; cost per pass is undefined."
+        else:
+            assert extended["cost_of_pass"][metric] == cost_usd
+        if cost_usd == 0 and perfect:
+            assert extended["per_dollar"][metric] is None
+            assert undefined[f"per_dollar.{metric}"] == "Cost is zero; positive metric per dollar is undefined."
+        else:
+            assert extended["per_dollar"][metric] == (1 / cost_usd if perfect else 0)
+    output = tmp_path / "scores.json"
+    write_eval_results(output, results)
+    assert json.loads(output.read_text()) == json.loads(encoded)
+
+
+@pytest.mark.parametrize("writer", [write_eval_results, write_error_report])
+@pytest.mark.parametrize("value", [float("inf"), float("-inf"), float("nan")])
+def test_json_writers_reject_nonfinite_without_overwriting(tmp_path: Path, writer, value: float) -> None:
+    output = tmp_path / "existing.json"
+    output.write_text('{"previous": true}', encoding="utf-8")
+    with pytest.raises(ValueError, match="Out of range float"):
+        writer(output, {"unexpected": {"diagnostic": value}})
+    assert output.read_text() == '{"previous": true}'

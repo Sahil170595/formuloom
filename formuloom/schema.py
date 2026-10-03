@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 SPEC_VERSION: int = 2
 
@@ -16,32 +16,40 @@ GroupingMode = Literal["auto", "row", "cell", "block"]
 UniversePolicy = Literal["raw", "raw_union_diff"]
 ReasoningEffort = Literal["none", "low", "medium"]
 
-_CELL_REF_RE = re.compile(r"^([A-Za-z]+)([0-9]+)$")
+_CELL_REF_RE = re.compile(r"([A-Za-z]{1,3})([1-9][0-9]{0,6})")
+_MAX_EXCEL_ROW = 1_048_576
+_MAX_EXCEL_COLUMN = 16_384
+
+
+def _cell_coordinates(ref: str) -> tuple[str, int, int]:
+    match = _CELL_REF_RE.fullmatch(ref)
+    if match is None:
+        raise ValueError(f"not a plain A1 cell ref: {ref!r}")
+    letters = match.group(1).upper()
+    row = int(match.group(2))
+    column = 0
+    for char in letters:
+        column = column * 26 + (ord(char) - ord("A") + 1)
+    if row > _MAX_EXCEL_ROW or column > _MAX_EXCEL_COLUMN:
+        raise ValueError(f"cell ref outside Excel bounds (A1:XFD1048576): {ref!r}")
+    return letters, row, column
 
 
 def cell_column_letters(ref: str) -> str:
-    match = _CELL_REF_RE.match(ref)
-    if match is None:
-        raise ValueError(f"not a plain A1 cell ref: {ref!r}")
-    return match.group(1).upper()
+    return _cell_coordinates(ref)[0]
 
 
 def cell_row(ref: str) -> int:
-    match = _CELL_REF_RE.match(ref)
-    if match is None:
-        raise ValueError(f"not a plain A1 cell ref: {ref!r}")
-    return int(match.group(2))
+    return _cell_coordinates(ref)[1]
 
 
 def cell_column_index(ref: str) -> int:
-    idx = 0
-    for char in cell_column_letters(ref):
-        idx = idx * 26 + (ord(char) - ord("A") + 1)
-    return idx
+    return _cell_coordinates(ref)[2]
 
 
 def cell_sort_key(ref: str) -> tuple[int, int]:
-    return cell_row(ref), cell_column_index(ref)
+    _, row, column = _cell_coordinates(ref)
+    return row, column
 
 
 class CellEntry(BaseModel):
@@ -50,6 +58,12 @@ class CellEntry(BaseModel):
 
     cell: str
     cell_type: CellType
+
+    @field_validator("cell")
+    @classmethod
+    def canonicalize_cell(cls, value: str) -> str:
+        letters, row, _ = _cell_coordinates(value)
+        return f"{letters}{row}"
 
 
 class CellGroup(BaseModel):

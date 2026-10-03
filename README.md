@@ -208,8 +208,14 @@ counts; `reproduce` recomputes them rather than reading the report as an oracle.
   coverage guarantee is asserted for correlated workbook rows.
 - **Cost estimates are historical constants.** Model IDs and pricing entries are
   retained configuration, not a promise of current availability/billing. Some
-  legacy cost-normalized diagnostics return infinity for zero cost; the focused
-  reproduction report uses finite strict JSON instead.
+  library cost-normalized diagnostics return infinity for zero denominators.
+  Evaluation exports represent those undefined ratios as `null`, with reasons
+  in `meta.extended.undefined_cost_metrics`. JSON writers reject any other
+  nonfinite values rather than producing invalid JSON or overwriting prior output.
+- **Candidate coordinates use plain A1 references.** Inputs accept Excel's
+  case-equivalent column letters and normalize them to uppercase before feature
+  extraction and scoring. Coordinates must lie within `A1:XFD1048576`; row zero,
+  leading-zero rows, ranges, absolute and sheet-qualified references are rejected.
 
 ## Optional Provider Execution
 
